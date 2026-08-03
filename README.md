@@ -11,11 +11,35 @@ API responde erro. Não há skill por tool — a unidade aqui é o fluxo de trab
 
 ## Instalação
 
-Clone o repositório e aponte a pasta de skills do seu agente para ele, ou
-copie os diretórios desejados para a pasta de skills do projeto/usuário:
+### Com o skills CLI (recomendado)
+
+O caminho mais rápido é o [skills CLI](https://skills.sh) da Vercel, que
+detecta as skills do repositório e instala direto no seu agente:
 
 ```bash
-git clone <url-do-repo> conty-skills
+# instala as skills no(s) agente(s) detectado(s), com prompt pra escolher
+npx skills add Conty-App/conty-skills
+
+# instala TODAS as skills em TODOS os agentes, sem prompt
+npx skills add Conty-App/conty-skills --all
+
+# escolhe skill e agente específicos
+npx skills add Conty-App/conty-skills --skill criar-campanha --agent claude-code
+
+# instala globalmente (disponível em todos os seus projetos)
+npx skills add Conty-App/conty-skills -g
+```
+
+Funciona com Claude Code, Kimi Code, Cursor, Codex e mais de 70 agentes.
+Para atualizar as skills depois: `npx skills update`.
+
+### Manual
+
+Clone o repositório e copie os diretórios desejados para a pasta de skills do
+projeto/usuário:
+
+```bash
+git clone https://github.com/Conty-App/conty-skills.git
 ```
 
 - **Kimi Code**: copie `skills/<nome>` para `.agents/skills/` (projeto) ou
