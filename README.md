@@ -55,8 +55,10 @@ Pré-requisito: o agente precisa estar conectado ao MCP da Conty e autenticado.
 | `criar-campanha` | Criar e publicar uma campanha do briefing à ativação | escrita |
 | `triagem-candidaturas` | Aprovar, rejeitar e gerir candidaturas e convites | escrita |
 | `acompanhar-missoes` | Revisar entregas: pedir alteração, recusar, reconvidar | escrita |
+| `reengajar-creators` | Reconvidar expirados e dar um toque em creators parados | escrita |
 | `buscar-creators` | Descobrir creators na base e avaliar perfis | leitura |
 | `relatorio-campanha` | Consolidar números e status de uma campanha | leitura |
+| `comparar-campanhas` | Comparar funil e desempenho de várias campanhas lado a lado | leitura |
 
 ## Regras que valem para todas as skills
 
