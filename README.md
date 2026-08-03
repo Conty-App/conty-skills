@@ -1,16 +1,17 @@
 # conty-skills
 
-Skills para clientes de IA (Kimi Code, Claude, Cursor etc.) que operam a Conty
-via [conty-mcp](../conty-mcp) — o servidor MCP remoto que expõe a operação de
-campanhas, missões, creators, comunidades e chat da plataforma.
+Skills para **agentes de IA** (Claude Code, Kimi Code, Cursor etc.) operarem a
+Conty via MCP. Este repositório é para quem quer tocar a operação da plataforma
+— campanhas, missões, creators, comunidades e chat — conversando com um agente,
+sem abrir o painel.
 
-Cada skill ensina o modelo a executar uma **tarefa da marca** de ponta a ponta:
+Cada skill ensina o agente a executar uma **tarefa da marca** de ponta a ponta:
 quais tools chamar, em que ordem, com quais parâmetros, e o que fazer quando a
 API responde erro. Não há skill por tool — a unidade aqui é o fluxo de trabalho.
 
 ## Instalação
 
-Clone o repositório e aponte a pasta de skills do seu cliente para ele, ou
+Clone o repositório e aponte a pasta de skills do seu agente para ele, ou
 copie os diretórios desejados para a pasta de skills do projeto/usuário:
 
 ```bash
@@ -21,7 +22,7 @@ git clone <url-do-repo> conty-skills
   `~/.kimi-code/skills/` (usuário).
 - **Claude Code**: copie para `.claude/skills/` ou `~/.claude/skills/`.
 
-Pré-requisito: o cliente precisa estar conectado ao conty-mcp e autenticado.
+Pré-requisito: o agente precisa estar conectado ao MCP da Conty e autenticado.
 
 ## Skills disponíveis
 
