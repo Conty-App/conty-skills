@@ -1,64 +1,69 @@
 ---
 name: reengajar-creators
-description: Reengaja creators parados em uma campanha da Conty via MCP — encontra missões expiradas e creators travados no meio da produção, reconvida quem expirou e manda mensagem pra quem sumiu. Use quando o usuário pedir para reengajar, cobrar, reativar ou dar um toque em creators que pararam ou deixaram o prazo expirar.
+description: Reengaja creators parados em uma campanha da Conty via MCP. Acha missões expiradas e creators travados no meio da produção, dá mais prazo a um creator ou a todos, reconvida quem expirou antes de aceitar e manda mensagem para quem sumiu. Use quando o usuário pedir para reengajar, cobrar, dar mais prazo, estender prazo, reativar ou dar um toque em creators que pararam ou deixaram o prazo expirar.
 ---
 
 # Reengajar creators
 
-**Escopo necessário: escrita** para agir (`reconvidar_creator`,
-`abrir_conversa`, `enviar_mensagem`). O mapeamento inicial (`listar_missoes`)
-é leitura.
+**Escopo necessário: escrita** para agir. O mapeamento é leitura.
 
 ## Fluxo
 
-1. **Localizar a campanha** — se preciso, `listar_campanhas` (normalmente
-   `status: "active"`) e confirme o id.
+1. **Localizar a campanha** com `buscar_campanhas` e confirme qual. Leia o fim
+   da campanha no `detalhar_campanha`: nenhum prazo novo passa dele.
 
-2. **Mapear quem está parado.** Chame `listar_missoes` com o `campaign_id` e
-   separe dois grupos:
-   - **Expirados**: missões com status `expirado` — creator perdeu o prazo.
-   - **Travados**: missões em `fazendo` há muito tempo — ordene com
-     `sortBy: "created_at"`, `order: "asc"` para ver as mais antigas primeiro.
-     O que conta como "travado" (7 dias? 15?) quem define é o usuário —
-     pergunte se ele não disser.
+2. **Mapear quem está parado.** `listar_missoes` com o `campaign_id`:
+   - **Expirados**: `statuses: "expirado"`.
+   - **Travados**: `statuses: "fazendo"`, `sortBy: "predicted_send_at"`,
+     `order: "asc"` (prazo mais antigo primeiro). Quanto tempo conta como
+     travado quem define é o usuário; pergunte se ele não disser.
 
-   Apresente a lista: creator, status, há quanto tempo está parada. Confirme
-   quem entra no reengajamento antes de agir.
+   Apresente creator, status e prazo, e confirme quem entra antes de agir.
+   Sempre reliste antes de agir em lote: o creator pode ter entregue enquanto
+   vocês decidiam.
 
-3. **Reconvidar os expirados.** Para cada missão expirada confirmada, chame
-   `reconvidar_creator` com o `mission_id`. A missão volta para `convidado`
-   com prazo limpo e o creator é notificado automaticamente. Não precisa de
-   mensagem manual pra esse grupo — a notificação já faz o toque.
+3. **Escolher a ação pelo caso:**
 
-4. **Dar o toque nos travados.** Creator em `fazendo` não se reconvida — a
-   abordagem é conversa:
-   - `abrir_conversa` com `campaign_id` para usar a sala da campanha (para
-     DM direta com um creator específico, `abrir_conversa` também aceita
-     escopo por creator — a API valida o formato)
-   - `enviar_mensagem` com o `room_id` retornado e o texto combinado com o
-     usuário
+   | Caso | Tool |
+   |---|---|
+   | Um creator em `fazendo` precisa de mais prazo | `estender_prazo_missao` |
+   | Expirou por prazo **depois** de aceitar | `estender_prazo_missao` (volta para Fazendo, sem aceitar de novo) |
+   | Expirou **antes** de aceitar o convite | `reconvidar_creator` |
+   | Mais prazo para **todos** de uma vez | `renovar_prazos` (skill `editar-campanha`) |
+   | Creator sumido, sem caso de prazo | conversa (passo 5) |
 
-   **Nunca improvise o texto da cobrança.** Peça ao usuário a mensagem ou um
-   rascunho pra ele aprovar — tom de cobrança é decisão da marca, não do
-   agente. A mensagem é persistida e notifica o creator offline.
+4. **Dar prazo ou reconvidar.**
+   - `estender_prazo_missao` com `mission_id` e `delivery_date` (ISO com fuso,
+     ex.: `2026-10-26T23:59:59-03:00`, vale o dia inteiro); `script_deadline`
+     só onde há roteiro. "Mais 3 dias" é o `predicted_send_at` da missão mais
+     3 dias. O creator é avisado por push e e-mail.
+   - `reconvidar_creator` com `mission_id`: volta a `convidado` com prazo limpo
+     e notifica. Não ocupa vaga nem verba; o teto é conferido no aceite.
 
-5. **Resumir o resultado**: quantos reconvidados, quantos contatados, e quem
-   ficou de fora (e por quê).
+   Essas ações já notificam: não precisa de mensagem manual.
+
+5. **Cobrar quem sumiu.** Abra a conversa e envie o texto **da marca**:
+   - `abrir_conversa` com `creator_id` + `enterprise_id` (DM com o creator) ou
+     `campaign_id` (sala da campanha), exatamente um escopo;
+   - `enviar_mensagem` com o `room_id` devolvido e o `content`.
+
+   **Nunca improvise a cobrança.** Peça a mensagem ou mostre um rascunho para o
+   usuário aprovar: tom de cobrança é decisão da marca.
+
+6. **Resumir**: quantos ganharam prazo, quantos foram reconvidados, quantos
+   contatados, e quem ficou de fora e por quê.
 
 ## Erros e conflitos
 
-- **`reconvidar_creator` em missão não expirada**: a API recusa — só vale pra
-  `expirado`. Se falhar, recarregue `listar_missoes`: o status pode ter mudado
-  desde o mapeamento (o creator pode ter entregue enquanto vocês decidiam).
-- **Missão que voltou a mover sozinha**: sempre reliste antes de agir em lote;
-  agir sobre estado velho é o erro clássico desse fluxo.
-- **Tool de escrita ausente na sessão**: o login foi feito sem opt-in de
-  escrita — avise que é preciso reconectar autorizando escrita.
+- **`reconvidar_creator` em missão não expirada**: a API recusa. Reliste.
+- **409 `no_items_left`**: campanha com produto sem item sobrando.
+- **Data depois do fim da campanha**: recusada. Estenda o fim antes com
+  `renovar_prazos` (`end_date`) ou `editar_acordo`, com confirmação.
+- **Tool de escrita ausente**: login sem opt-in de escrita; reconecte.
 
 ## Limites
 
-- Reconvite zera o prazo, não estende — se a campanha em si está no fim
-  (`duration_days` perto do limite), reconvidar pode não dar tempo de entrega;
-  verifique com `detalhar_campanha` antes de prometer prazo ao creator.
-- Nada aqui remove creator da campanha — desistência de quem não responde é
-  `remover_creator_campanha`, no fluxo da skill `acompanhar-missoes`.
+- Desistência definitiva de quem não responde é `remover_creator_campanha`,
+  na skill `acompanhar-missoes`.
+- Pedir alteração ou recusar entrega não é cobrança: use a skill
+  `acompanhar-missoes`, não o chat.

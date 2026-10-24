@@ -1,51 +1,63 @@
 ---
 name: relatorio-campanha
-description: Consolida os números e o status de uma campanha da Conty via MCP — contagens por aba, missões por status, candidaturas, orçamento e métricas de entrega em um resumo executivo. Use quando o usuário pedir um relatório, resumo, status, balanço ou "como está" uma campanha.
+description: Consolida os números e o status de uma campanha da Conty via MCP. Junta situação, verba, funil de candidaturas, produção por etapa, entregas e pendências da marca num resumo executivo ou numa planilha. Use quando o usuário pedir relatório, resumo, status, balanço, planilha ou "como está" uma campanha.
 ---
 
 # Relatório de campanha
 
-**Escopo necessário: leitura.** Funciona em qualquer sessão.
+**Escopo necessário: leitura.**
 
 ## Fluxo
 
-1. **Localizar a campanha.** Se o usuário não deu o id, `listar_campanhas`
-   com `q` (nome) ou `status`, e confirme qual campanha reportar.
+1. **Localizar.** `buscar_campanhas` com `q` (traz acordos e avulsas como na
+   tela). Use o `campaign_id` de um bloco; num acordo, qualquer bloco lê o
+   acordo inteiro.
 
-2. **Coletar os dados em paralelo** — três chamadas independentes com o
-   `campaign_id`:
-   - `detalhar_campanha` — status atual, orçamento, modelo de pagamento,
-     prazo, plataformas, flags de aprovação, contagens gerais e `share_url`
-   - `contagens_campanha` — missões por status, convites de prospect
-     pendentes, candidaturas (todas/pendentes/aprovadas/rejeitadas/expiradas)
-   - `listar_missoes` — o detalhe por creator: status, link do vídeo,
-     pagamento e métricas de cada entrega (use `limit`/`offset` se a campanha
-     for grande; para um recorte, filtre por `statuses`)
+2. **Coletar em paralelo** (chamadas independentes):
+   - `detalhar_campanha`: status, verba e valores, datas, flags de aprovação,
+     plataformas, `share_url`, e no acordo os escopos e briefings;
+   - `contagens_campanha`: missões por aba, convites de prospect pendentes e
+     candidaturas (pendentes, aprovadas, rejeitadas, expiradas, pré-aprovadas);
+   - `listar_entregas` com `campaign_id` e `etapa: "revisao"`: o que espera a
+     marca.
 
-3. **Montar o resumo**, nesta ordem:
-   - **Situação**: nome, status da campanha, dias restantes (de
-     `duration_days` e datas), orçamento e modelo de pagamento
-   - **Funil**: candidaturas pendentes → aprovadas; convites pendentes
-   - **Produção**: missões por status (convidados, fazendo, em análise, em
-     alteração, aprovados, recusados) — destaque o que trava a operação:
-     vídeos parados em análise e missões expiradas
-   - **Pendências da marca**: itens que esperam decisão do usuário
-     (candidaturas sem resposta, vídeos em análise, assets a revisar)
+3. **Detalhe por creator**, quando o usuário quiser ou a campanha for pequena:
+   `listar_itens_campanha` com `view: "missions"` (progresso e pendências),
+   `"applications"` (candidaturas) ou `"videos"` (entregas), `limit: 100` e
+   `offset` para paginar. Pedido de **planilha** ou Excel: mesma tool com
+   `as_spreadsheet: true` (as datas da etapa entram por padrão; só mande
+   `include_dates: false` se pedirem sem datas).
 
-4. **Apontar próximos passos**, não só números: se há vídeos em análise,
-   sugira a skill `acompanhar-missoes`; se há candidaturas pendentes,
-   `triagem-candidaturas`. O relatório termina em ação.
+4. **Montar o resumo**, nesta ordem:
+   - **Situação**: nome, status (`approved` = no ar), dias até o fim, verba e
+     modelo de pagamento;
+   - **Funil**: candidaturas pendentes → aprovadas; convites pendentes;
+   - **Produção**: missões por etapa, destacando o que trava: vídeos parados em
+     análise, alterações pendentes, expirados;
+   - **Pendências da marca**: candidaturas sem resposta, vídeos e assets a
+     revisar.
 
-## Erros e conflitos
+   No acordo, "Aguardando envio" é creator aprovado ou convidado que ainda não
+   recebeu briefing ou prazo (a agência envia pelo painel); não confunda com
+   "Aguardando conteúdo", em que o creator já recebeu e não entregou.
 
-- **Campanha arquivada**: ainda é possível reportar — `listar_campanhas` com
-  `archived: true` a encontra. Avise no resumo que ela está fora do ar.
-- **Listas grandes**: não despeje centenas de missões na resposta; agregue por
-  status e detalhe só o recorte que o usuário pedir.
+5. **Terminar em ação**: vídeos em análise → `acompanhar-missoes`; candidaturas
+   pendentes → `triagem-candidaturas`; creators parados → `reengajar-creators`.
 
-## Limites
+## Perguntas que não cabem nas tools acima
 
-- Métricas de comunidade (quando a campanha roda em comunidade) não estão
-  aqui — use `analytics_comunidade` com o `community_id` para esse recorte.
-- Esta skill só lê: nenhum número apresentado aqui foi alterado pelo
-  relatório.
+`consultar_dados` lê as views da marca (`campaigns`, `campaign_groups`,
+`missions`, `applications` e outras) para cortes específicos, ex.: missões
+atrasadas, nota média dos aprovados, quanto foi pago. Prefira `query`; `sql`
+cru só para JOIN ou janela. Use só quando nenhuma tool de cima responde.
+
+## Erros e limites
+
+- Campanha arquivada ainda é reportável: `buscar_campanhas` com
+  `archived: true`. Avise que está fora do ar.
+- Listas grandes: agregue por etapa e detalhe só o recorte pedido.
+- Marca atendida por agência não recebe campos de dinheiro: ausência não é
+  zero, diga que o valor não está disponível.
+- Métricas de comunidade: `analytics_comunidade` com o `community_id`.
+- Não exponha nem reconstrua link de vídeo ou arquivo: a disponibilidade da
+  entrega é da rota autenticada.
